@@ -1,5 +1,4 @@
 # DATA ANALYSIS WITH PANDAS
-
 # For this section we will need an external library, pandas. So, we will use an "import" statement, that provides
 # our script with the requested package from our conda environment. For convenience, we will use an abbreviation using
 # the "as" keyword to give the imported library an alias
@@ -7,6 +6,7 @@ import pandas as pd
 
 # we also import a bunch of other libraries and utilities that we will use along this section
 from pathlib import Path
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # %% First of all we have to provide the path of the location where we saved the data. Here we are using the relative
 # path (relative to the present script). You can also provide it in form of absolute path. We start by loading one chunk
 # of our dataset
-path = "./data/fish_100.csv"
+path = "./data/fish_00.csv"
 
 # %% We then procede loading the data and showing the overall information. Load data in a dataframe structure
 df = pd.read_csv(path)
@@ -40,9 +40,14 @@ df = pd.read_csv(path, index_col=0, header=0)
 
 # %% Let's incorporate it in a function, that also shows the first 10 lines of the dataframe
 def import_csv(path, show_preview=False):
+    # load data
     df = pd.read_csv(path, index_col=0, header=0)
+
+    # show preview
     if show_preview:
         print(df.head())
+
+    # return result
     return df
 
 
@@ -52,112 +57,241 @@ df = import_csv(path, show_preview=True)
 
 # %% pandas provides an easy way to access basic statistical characteristics of our data. In particular dataframes have
 # built-in methods "min()", "max()", "mean()", "sum()", "corr()", and "describe()" which gives a summary.
-# Print basic statistics of the columns "average_speed" and "start_time"
-print("AVERAGE SPEED")
-print(df["average_speed"].describe())
+# Print basic statistics of the columns "x_position" and "y_position"
+print("X POSITION")
+print(df["x_position"].describe())
 
-print("START TIME")
-print(df["start_time"].describe())
+print("Y POSITION")
+print(df["y_position"].describe())
+
+
+# %% plot the trajectory of the fish
+
+# select the first 100 movements of the fish
+df_start = df.iloc[:100]
+
+# show trajectory
+plt.figure()
+plt.plot(df_start["x_position"], df_start["y_position"], marker="o")
+plt.show()
+
+
+# %% Implement a function to add a column to the dataframe, telling us on which side the fish is at the end of each swim
+
+# slow implementation
+def compute_side(df):
+    # initialize array of zeros
+    side = np.zeros(len(df))
+
+    # loop over rows in the dataframe
+    for i_row, row in df.iterrows():
+
+        # check side and assign a label (-1: dark, 0: edge, 1: light)
+        if row["x_position"] < 0:
+            side[i_row] = -1
+        elif row["x_position"] > 0:
+            side[i_row] = 1
+        else:
+            side[i_row] = 0
+
+    # return result
+    return side
+
+# import package for timing (profiling) your code
+import time
+
+# execute code with manual profiling
+time_start = time.time()
+df["side"] = compute_side(df)
+time_end = time.time()
+
+# log result
+print(f"The slow implementation of where_is_the_fish takes {time_end - time_start} s")
+
+
+# %% Faster implementation
+def compute_side_fast(df):
+    return np.sign(df["x_position"])
+
+# execute code with manual profiling
+time_start = time.time()
+df["side"] = compute_side_fast(df)
+time_end = time.time()
+
+# log result
+print(f"The fast implementation of where_is_the_fish takes {time_end - time_start} s")
+
+
+# %% Plot histogram of the presence of the fish on each side
+
+# count events on each side
+n_dark_side = len(df[df["side"] == -1])
+n_edge = len(df[df["side"] == 0])
+n_light_side = len(df[df["side"] == 1])
+
+# organize data to plot them
+bin_labels = [-1, 0, 1]
+hist_values = [n_dark_side, n_edge, n_light_side]
+
+# show bar plot
+plt.figure()
+plt.bar(bin_labels, hist_values)
+plt.show()
+
+
+# %% Plot histogram of the current fish for its x_position
+
+# compute histogram values and bins
+hist_values, bin_edges = np.histogram(df["x_position"])
+
+# import function for centering bins
+from src.utils.useful_functions import center_bins_hist
+
+# center bins
+bin_centers = center_bins_hist(bin_edges)
+
+# plot result
+plt.figure()
+plt.plot(bin_centers, hist_values)
+plt.show()
+
+
+# %% we like the result, so let's embed this code in a function
+def plot_histogram(df, column_name="x_position", axs=None):
+    # import necessary support function
+    from src.utils.useful_functions import center_bins_hist
+
+    # compute histogram quantities
+    hist_values, bin_edges = np.histogram(df[column_name])
+
+    # center the bins
+    bin_centers = center_bins_hist(bin_edges)
+
+    # check if we already have a target window for plotting, if not create one
+    if axs is None:
+        fig, axs = plt.subplots((1, 1))
+
+    # plot
+    axs.plot(bin_centers, hist_values)
 
 
 # %% The dataset we just used come from a single fish. For our analysis we need to put together data from different
 # individuals
 def import_csv_from_dir(dir_path, show_info=False):
+    # initialize empty list
     data_list = []
+
+    # loop over all files and directories in dir_path
     for fish_dataset_path in dir_path.glob("*.csv"):
+        # check if it is a file
+        if fish_dataset_path.is_dir():
+            continue
+
         # load data in a temporary structure
         df_temp = import_csv(fish_dataset_path)
+
+        # add new batch to the list of datasets
         data_list.append(df_temp)
-    # merge all the dataframes in data_list and print information about the dataframe
+
+    # merge all the dataframes in data_list
     df = pd.concat(data_list, axis=0)
+
+    # show information
     if show_info:
         print(df.info())
+
+    # return result
     return df
 
 
-# %% Test the function
+# %% Test the function all data in a single dataframe
 dir_path = Path("./data")
 df_all_fish = import_csv_from_dir(dir_path, show_info=True)
 
 
-# %% Implement a function to add a column to the dataframe, telling us in which side the fish is at the end of the swim
-def where_is_the_fish():
-    pass
+# %% Show distribution for all fish
+
+# get list of fish IDs
+fish_id_list = df_all_fish["fish_ID"].unique()
+
+# initialize window for plots
+fig, axs = plt.subplots(nrows=len(fish_id_list), ncols=1)
 
 
-# %% Implement a function to add a column to the dataframe, telling us whether the fish just changed side
-def is_the_fish_changing_side():
-    pass
+i_fish = 0
+# loop over fish
+for fish_id in fish_id_list:
+    # filter dataframe using only data from current fish
+    df_fish = df_all_fish[df_all_fish["fish_ID"] == fish_id]
+
+    # select where to plot
+    plot_section = axs[i_fish]
+
+    # select what to show on the x axis
+    plot_section.set_xlim(-4.5, 4.5)
+
+    # draw vertical line on zero
+    plot_section.axvline(x=0, color="gray", linestyle='--')
+
+    # plot using the function we designed before
+    plot_histogram(df_fish, column_name="x_position", axs=plot_section)
+
+    # update fish index
+    i_fish += 1
+
+# show result
+fig.show()
 
 
+# %% select the undecided fish
 
-# ALL WHAT COMES NEXT IS DEPRECATED BUT I COULD KEEP THE STRUCTURE
+# implement a definition for undecidedness
+def is_undecided(peak_of_distribution):
+    return -1 < peak_of_distribution < 1
 
-# %% Now that we have a proper dataframe, we can extract some information. For example, we can now check the accuracy of
-# each fish using the amount of 1s in correct_bout. We are going to simplify the analysis as much as possible,
-# so we will only consider left or right swims, filtering out all the straight ones, identified in the dataframe by the
-# value -1 in column "correct_bout"
-df_all_fish = df_all_fish[~(df_all_fish["correct_bout"] == -1)]
+# initialize empty list of undecided fish
+undecided_fish_list = []
 
+# loop over fish
+for fish_id in fish_id_list:
+    # filter dataframe using only data from current fish
+    df_fish = df_all_fish[df_all_fish["fish_ID"] == fish_id]
 
-# %% we iterate over fishes
-for fish_id in df_all_fish.index.unique("fish_ID"):
-    # we select only the subset of rows corresponding to the present fish, using all the trials
-    df_fish = df_all_fish.xs(fish_id, level="fish_ID")
-    # and now we compute the accuracy as correct_bouts/total_bouts
-    accuracy = df_fish["correct_bout"].sum() / len(df_fish["correct_bout"])
-    print(f"INFO | fish {fish_id} has accuracy = {accuracy}")
+    # compute histogram quantities
+    hist_values, bin_edges = np.histogram(df["x_position"])
 
-# %% we can also perform the same operation using the groupby method
-df_accuracy = df.groupby("fish_ID")["correct_bout"].mean()
+    # center the bins
+    bin_centers = center_bins_hist(bin_edges)
 
-# %% from the output dataframe we can also obtain information on the best and worst performing fish
-print(f"INFO | fish {df_accuracy.idxmax()} has accuracy {df_accuracy.max()}. It's the best")
-print(f"INFO | fish {df_accuracy.idxmin()} has accuracy {df_accuracy.min()}. It's the worst")
+    # select the mode
+    i_max = np.argmax(hist_values)
 
+    # select corresponding bin
+    bin_max = bin_centers[i_max]
 
-# %% Finally we are interested in looking at how the best and worst fish move in the arena, so we are going to plot the
-# swimming trajectory for these two
+    if is_undecided(bin_max):
+        # log if the fish is undecided
+        print(f"fish {fish_id} is undecided. Its mode x_position is {bin_max}")
 
-# import list containing color names
-from src.utils.constants import color_list
-
-#  define the index of the best and worst fish
-fish_id_best = "insert here your answer"
-fish_id_worst = "insert here your answer"
-
-# define grid for plotting
-fig, axs = plt.subplots(1, 2)
-
-axs[0].set_title("best fish trajectory")
-axs[0].set_ylabel("start_y_position")
-axs[0].set_xlim([-1, 1])
-axs[0].set_ylim([-1, 1])
-# plot the trajectories for the best fish
-for trial in df.index.unique("trial"):
-    df.xs((fish_id_best, trial), level=["fish_ID", "trial"]).plot(x="start_x_position", y="start_y_position",
-                                                                  ax=axs[0], kind="line", legend=False,
-                                                                  color=color_list[trial])
-
-axs[1].set_title("worst fish trajectory")
-axs[1].set_xlim([-1, 1])
-axs[1].set_ylim([-1, 1])
-# plot the trajectory for the worst fish
-for trial in df.index.unique("trial"):
-    df.xs((fish_id_worst, trial), level=["fish_ID", "trial"]).plot(x="start_x_position", y="start_y_position",
-                                                                   ax=axs[1], kind="line", legend=False,
-                                                                   color=color_list[trial])
-
-# show plots
-plt.show()
+        # store the ID
+        undecided_fish_list.append(fish_id)
 
 
+# %% show trajectory for undecided fish  # TODO: fix this
 
+# loop over undecided fish
+for fish_id in undecided_fish_list:
+    # filter dataframe using only data from current fish
+    df_fish = df_all_fish[df_all_fish["fish_ID"] == fish_id]
 
-def create_target_column():
-    pass
+    # filter only for recordings close to the edge
+    df_fish_edge = df_fish[np.logical_and(df_fish["x_position"] > -1, df_fish["x_position"] < 1)]
 
-def preprocess(csv_path):
-    df = import_csv(csv_path)
-    create_target_column(df)
-    return df
+    # plot trajectory of the filtered data
+    plt.plot(df_fish_edge["x_position"], df_fish_edge["y_position"], marker="o")
+
+    # label the plot with the id of the fish
+    plt.title(f"fish {fish_id}")
+
+    # show result
+    plt.show()
