@@ -41,7 +41,6 @@ package installer for Python
 ### Create your python environment
 **1. Open Anaconda Prompt**
 
-
 **2. Create new environment with all the needed dependencies and install python 3.12**
 
 ```conda env create --file=<LOCAL_PATH_TO_PROJECT/env.yaml>```
