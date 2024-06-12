@@ -1,12 +1,12 @@
-# DATA ANALYSIS WITH PANDAS
-# For this section we will need an external library, pandas. So, we will use an "import" statement, that provides
-# our script with the requested package from our conda environment. For convenience, we will use an abbreviation using
-# the "as" keyword to give the imported library an alias
+# DATA ANALYSIS WITH PANDAS AND NUMPY
+# For this section we will need two external packages, pandas and numpy. So, we will use two "import" statements, that
+# provide our script with the requested packages from our conda environment. For convenience, we will use an abbreviation
+# using the "as" keyword to give the imported library an alias
 import pandas as pd
+import numpy as np
 
 # we also import a bunch of other libraries and utilities that we will use along this section
 from pathlib import Path
-import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -38,7 +38,8 @@ print(df.head())
 # the data to be loaded:
 df = pd.read_csv(path, index_col=0, header=0)
 
-# %% Let's incorporate it in a function, that also shows the first 10 lines of the dataframe
+# %% EXERCISE 0
+# Let's incorporate it in a function, that also shows the first 10 lines of the dataframe
 def import_csv(path, show_preview=False):
     # load data
     df = pd.read_csv(path, index_col=0, header=0)
@@ -51,11 +52,13 @@ def import_csv(path, show_preview=False):
     return df
 
 
-# %% And test the function
+# %% EXERCISE 1
+# And test the function
 df = import_csv(path, show_preview=True)
 
 
-# %% pandas provides an easy way to access basic statistical characteristics of our data. In particular dataframes have
+# %% EXERCISE 2
+# pandas provides an easy way to access basic statistical characteristics of our data. In particular dataframes have
 # built-in methods "min()", "max()", "mean()", "sum()", "corr()", and "describe()" which gives a summary.
 # Print basic statistics of the columns "x_position" and "y_position"
 print("X POSITION")
@@ -160,7 +163,8 @@ plt.plot(bin_centers, hist_values)
 plt.show()
 
 
-# %% we like the result, so let's embed this code in a function
+# %% EXERCISE 3
+# We like the result, so let's embed this code in a function
 def plot_histogram(df, column_name="x_position", axs=None):
     # import necessary support function
     from src.utils.useful_functions import center_bins_hist
@@ -177,6 +181,9 @@ def plot_histogram(df, column_name="x_position", axs=None):
 
     # plot
     axs.plot(bin_centers, hist_values)
+
+# PRO-TIP: move useful functions in specific files grouping by scope of use. This way you will be able to easily find,
+# import and reuse them throughout your project
 
 
 # %% The dataset we just used come from a single fish. For our analysis we need to put together data from different
@@ -213,7 +220,11 @@ dir_path = Path("./data")
 df_all_fish = import_csv_from_dir(dir_path, show_info=True)
 
 
-# %% Show distribution for all fish
+# %% Show distribution for all fish together
+plot_histogram(df, column_name="x_position", axs=None)
+
+
+# %% Show distribution for each fish
 
 # get list of fish IDs
 fish_id_list = df_all_fish["fish_ID"].unique()
@@ -247,7 +258,7 @@ for fish_id in fish_id_list:
 fig.show()
 
 
-# %% study brightness preference
+# %% Study brightness preference
 
 # select thresholds for preference
 dark_threshold = -0.5
@@ -266,7 +277,8 @@ def prefers_dark(peak_of_distribution):
     return peak_of_distribution < dark_threshold
 
 
-# %% check the preference of all our fish
+# %% EXERCISE
+# Check the preference of all our fish
 
 # initialize empty list of undecided fish (we want to store them for later)
 undecided_fish_list = []
@@ -301,29 +313,101 @@ for fish_id in fish_id_list:
         undecided_fish_list.append(fish_id)
 
 
-# %% EXTRA
+# %% EXTRA: numpy
 # To find the preference we computed the mode of x_position. Is there a more reliable way to obtain this information?
 # How would the result change? Code it.
 
+# histogram-based solution
+for fish_id in fish_id_list:
+    # filter dataframe using only data from current fish
+    df_fish = df_all_fish[df_all_fish["fish_ID"] == fish_id]
 
-# %% check how undecided are the fish
+    # compute histogram quantities
+    hist_values, bin_edges = np.histogram(df_fish["x_position"])
+
+    # center the bins
+    bin_centers = center_bins_hist(bin_edges)
+
+    # merge hist values in dark/undecided/light areas and for each area compute the width of its x-range
+    i_dark_array = np.argwhere(bin_centers < dark_threshold)
+    n_recordings_dark = np.sum(hist_values[i_dark_array])
+    x_range_dark = np.abs(-4.5 - dark_threshold)
+
+    i_undecided_array = np.argwhere(dark_threshold < bin_centers < light_threshold)
+    n_recordings_undecided = np.sum(hist_values[i_undecided_array])
+    x_range_undecided = np.abs(light_threshold - dark_threshold)
+
+    i_light_array = np.argwhere(bin_centers > light_threshold)
+    n_recordings_light = np.sum(hist_values[i_dark_array])
+    x_range_light = np.abs(4.5 - light_threshold)
+
+    # define list with results. Preference computed as relative number of recordings in each area
+    result_list = [n_recordings_dark/x_range_dark,
+                   n_recordings_undecided/x_range_undecided,
+                   n_recordings_light/x_range_light]
+
+    # find preference
+    i_preference = np.argmax(result_list)
+
+    # log preference
+    if i_preference == 0:
+        print(f"fish {fish_id} prefers DARKNESS")
+    elif i_preference == 1:
+        print(f"fish {fish_id} is UNDECIDED")
+    elif i_preference == 2:
+        print(f"fish {fish_id} prefers LIGHT")
+
+
+# %% EXTRA: df.diff()
+# Find how much time each fish spent in each area
+for fish_id in fish_id_list:
+    # filter dataframe using only data from current fish
+    df_fish = df_all_fish[df_all_fish["fish_ID"] == fish_id]
+
+    # compute time between recordings and assign it to new column
+    delta_time = df_fish["time"].diff()
+    df_fish["delta_time"] = delta_time
+
+    # compute sum of time spent in each area
+    time_in_dark = np.sum(df_fish[
+                              df_fish["x_position"] < dark_threshold
+                          ]["delta_time"])
+    time_undecided = np.sum(df_fish[
+                                np.logical_and(df_fish["x_position"] > dark_threshold,
+                                               df_fish["x_position"] < light_threshold)
+                            ]["delta_time"])
+    time_in_light = np.sum(df_fish[
+                               df_fish["x_position"] > light_threshold
+                           ]["delta_time"])
+
+    # log results
+    print(f"fish {fish_id} spent {time_in_dark:.02f}s in darkness")
+    print(f"fish {fish_id} spent {time_undecided:.02f}s close to the edge")
+    print(f"fish {fish_id} spent {time_in_light:.02f}s in light")
+
+
+
+# %% EXERCISE
+# Check how undecided are the fish
 
 # implement function to check when the fish is changing side
 def compute_changing_side(df):
     # initialize array of zeros. We will update the values to 1 whenever the fish changes side
     changing_side_array = np.zeros(len(df))
 
+    # loop over rows in the dataframe
     for i_row in range(1, len(df)):
+        # check if side has changed between two consecutive recordings
         if df.iloc[i_row]["side"] * df.iloc[i_row-1]["side"] <= 0:
+            # in case this is true, update the array with information on changing_side
             changing_side_array[i_row] = 1
 
     # add a column to the df containing the information about changing side
     df["changing_side"] = changing_side_array
 
-    # return updated dataframe
-    return df
 
-# %% quantify undecidedness of the fish
+# %% EXERCISE
+# Quantify undecidedness of the fish
 
 # loop over undecided fish
 for fish_id in undecided_fish_list:
@@ -344,11 +428,28 @@ for fish_id in undecided_fish_list:
     percentage_changing_side = df_fish["changing_side"].sum() / len(df_fish) * 100
 
     # log result
-    print(f"fish {fish_id} changed side in {percentage_changing_side:.02f}% of the cases")
+    print(f"fish {fish_id} changed side in {percentage_changing_side:.02f}% of the cases when presented the chance")
 
 
+# %% EXTRA: groupby
+# Use groupby to efficiently compute the mean and standard deviation of y_position to check that fish has no vertical
+# preference
 
+# compute mean of all columns grouping data by fish_ID
+df_all_fish_mean = df_all_fish.groupby("fish_ID").mean()
 
+# compute std of all columns grouping data by fish_ID
+df_all_fish_std = df_all_fish.groupby("fish_ID").std()
 
+# extract mean and std of y_position for each fish
+mean_y_position = df_all_fish_mean["y_position"]
+std_y_position = df_all_fish_std["y_position"]
+
+# log result for each fish
+for i_fish in range(len(mean_y_position)):
+    print(f"fish {i_fish} | y_position | mean: {mean_y_position[i_fish]:.02f} | std: {std_y_position[i_fish]:.02f}")
+
+# PRO-TIP: sometimes mean and std are not enough to describe your data. They are only good metrics if your data has a
+# gaussian distribution
 
 
