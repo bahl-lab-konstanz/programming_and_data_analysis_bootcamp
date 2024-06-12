@@ -11,9 +11,24 @@ import matplotlib.pyplot as plt
 
 
 # %% Introduction
+#
+### Introduction Pandas
 # When working with tabular data, such as data stored in spreadsheets or databases, pandas is the perfect tool.
 # It allows to easily explore, clean, and process data. In pandas, a data table is called a DataFrame.
 # The name "pandas" stands for "Python Data Analysis" (or Panel Data according to some sources).
+#
+### Introdution NumPy
+# NumPy comes with a lot of functions implemented to calculate the basic statistical characteristics.
+# Note that, since Numpy works with multidimensional arrays usually you have to specify an axis such that Numpy knows
+# which dimension you are interested in.
+# Basic Numpy functions, like np.mean() or np.sum(), are sensitive to missing values. Also a typical None must actually
+# be parsed to the same datatype as the other values inside the array. Luckily Numpy offers also robust methods to deal
+# with missing values, e.g. np.nanmean() for means, np.nanstd() and np.nansum() for standard deviations and sum
+# respectively
+#
+# ~From the official documentation:
+# NumPy’s main object is the homogeneous multidimensional array. It is a table of elements (usually numbers), all of the
+# same type, indexed by a tuple of non-negative integers. In NumPy dimensions are called axes.
 
 # %% First of all we have to provide the path of the location where we saved the data. Here we are using the relative
 # path (relative to the present script). You can also provide it in form of absolute path. We start by loading one chunk
