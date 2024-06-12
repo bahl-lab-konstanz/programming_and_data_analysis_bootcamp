@@ -94,32 +94,36 @@ def compute_side(df):
         else:
             side[i_row] = 0
 
-    # return result
-    return side
+    # add column to the dataframe
+    df["side"] = side
 
 # import package for timing (profiling) your code
 import time
 
 # execute code with manual profiling
 time_start = time.time()
-df["side"] = compute_side(df)
+compute_side(df)
 time_end = time.time()
 
 # log result
-print(f"The slow implementation of where_is_the_fish takes {time_end - time_start} s")
+print(f"The SLOW implementation of compute_side takes {time_end - time_start} s")
 
 
 # %% Faster implementation
 def compute_side_fast(df):
-    return np.sign(df["x_position"])
+    # compute side
+    side = np.sign(df["x_position"])
+
+    # add column to the dataframe
+    df["side"] = side
 
 # execute code with manual profiling
 time_start = time.time()
-df["side"] = compute_side_fast(df)
+compute_side_fast(df)
 time_end = time.time()
 
 # log result
-print(f"The fast implementation of where_is_the_fish takes {time_end - time_start} s")
+print(f"The FAST implementation of compute_side takes {time_end - time_start} s")
 
 
 # %% Plot histogram of the presence of the fish on each side
@@ -243,13 +247,28 @@ for fish_id in fish_id_list:
 fig.show()
 
 
-# %% select the undecided fish
+# %% study brightness preference
+
+# select thresholds for preference
+dark_threshold = -0.5
+light_threshold = 0.5
 
 # implement a definition for undecidedness
 def is_undecided(peak_of_distribution):
-    return -1 < peak_of_distribution < 1
+    return dark_threshold < peak_of_distribution < light_threshold
 
-# initialize empty list of undecided fish
+# implement a definition for light preference
+def prefers_light(peak_of_distribution):
+    return peak_of_distribution > light_threshold
+
+# implement a definition for dark preference
+def prefers_dark(peak_of_distribution):
+    return peak_of_distribution < dark_threshold
+
+
+# %% check the preference of all our fish
+
+# initialize empty list of undecided fish (we want to store them for later)
 undecided_fish_list = []
 
 # loop over fish
@@ -258,7 +277,7 @@ for fish_id in fish_id_list:
     df_fish = df_all_fish[df_all_fish["fish_ID"] == fish_id]
 
     # compute histogram quantities
-    hist_values, bin_edges = np.histogram(df["x_position"])
+    hist_values, bin_edges = np.histogram(df_fish["x_position"])
 
     # center the bins
     bin_centers = center_bins_hist(bin_edges)
@@ -269,29 +288,67 @@ for fish_id in fish_id_list:
     # select corresponding bin
     bin_max = bin_centers[i_max]
 
-    if is_undecided(bin_max):
+    if prefers_dark(bin_max):
         # log if the fish is undecided
-        print(f"fish {fish_id} is undecided. Its mode x_position is {bin_max}")
-
+        print(f"fish {fish_id} prefers DARKNESS. Its mode x_position is {bin_max}")
+    elif prefers_light(bin_max):
+        # log if the fish is undecided
+        print(f"fish {fish_id} prefers LIGHT. Its mode x_position is {bin_max}")
+    elif is_undecided(bin_max):
+        # log if the fish is undecided
+        print(f"fish {fish_id} is UNDECIDED. Its mode x_position is {bin_max}")
         # store the ID
         undecided_fish_list.append(fish_id)
 
 
-# %% show trajectory for undecided fish  # TODO: fix this
+# %% EXTRA
+# To find the preference we computed the mode of x_position. Is there a more reliable way to obtain this information?
+# How would the result change? Code it.
+
+
+# %% check how undecided are the fish
+
+# implement function to check when the fish is changing side
+def compute_changing_side(df):
+    # initialize array of zeros. We will update the values to 1 whenever the fish changes side
+    changing_side_array = np.zeros(len(df))
+
+    for i_row in range(1, len(df)):
+        if df.iloc[i_row]["side"] * df.iloc[i_row-1]["side"] <= 0:
+            changing_side_array[i_row] = 1
+
+    # add a column to the df containing the information about changing side
+    df["changing_side"] = changing_side_array
+
+    # return updated dataframe
+    return df
+
+# %% quantify undecidedness of the fish
 
 # loop over undecided fish
 for fish_id in undecided_fish_list:
     # filter dataframe using only data from current fish
     df_fish = df_all_fish[df_all_fish["fish_ID"] == fish_id]
 
-    # filter only for recordings close to the edge
-    df_fish_edge = df_fish[np.logical_and(df_fish["x_position"] > -1, df_fish["x_position"] < 1)]
+    # filter dataframe to recordings close to the edge
+    df_fish = df_fish[np.logical_and(df_fish["x_position"] > dark_threshold,
+                                     df_fish["x_position"] < light_threshold)]
 
-    # plot trajectory of the filtered data
-    plt.plot(df_fish_edge["x_position"], df_fish_edge["y_position"], marker="o")
+    # add side column
+    compute_side_fast(df_fish)
 
-    # label the plot with the id of the fish
-    plt.title(f"fish {fish_id}")
+    # add changing_side column to the dataframe
+    compute_changing_side(df_fish)
 
-    # show result
-    plt.show()
+    # compute percentage of times in which the fish changed its mind
+    percentage_changing_side = df_fish["changing_side"].sum() / len(df_fish) * 100
+
+    # log result
+    print(f"fish {fish_id} changed side in {percentage_changing_side:.02f}% of the cases")
+
+
+
+
+
+
+
