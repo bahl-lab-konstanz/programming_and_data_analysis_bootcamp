@@ -52,7 +52,7 @@ press `y` and `Enter` if prompted
 
 ```conda activate python_bootcamp```
 
-**4. Open PyCharm and add a new interpreter paired with your environment 
+**4. Open PyCharm and add a new interpreter paired with your environment**
 
 **5. (EXTRA) To update a package, e.g. matplotlib, type**
 
