@@ -11,25 +11,25 @@ def simulate_animal_movement(timestamps=1000, arena_size=1, start_x=0.5, start_y
     animal_position_y = [start_y]
 
     # Simulate the animal movement
-    for t in np.arange(timestamps):
+    for t in np.arange(timestamps):  # going through every timestep using a for loop
         x_bias = np.random.uniform(0, 1)
         y_bias = np.random.uniform(0, 1)
 
-        dx = np.random.normal(0.05, 0.01)
-        dy = np.random.normal(0.05, 0.01)
+        step_size_x = np.random.normal(0.05, 0.01)
+        step_size_y = np.random.normal(0.05, 0.01)
 
         prev_position_x = animal_position_x[-1]
         prev_position_y = animal_position_y[-1]
 
         if x_bias > threshold_right:
-            new_position_x = prev_position_x + dx
+            new_position_x = prev_position_x + step_size_x
         else:
-            new_position_x = prev_position_x - dx
+            new_position_x = prev_position_x - step_size_x
 
         if y_bias > threshold_up:
-            new_position_y = prev_position_y + dy
+            new_position_y = prev_position_y + step_size_y
         else:
-            new_position_y = prev_position_y - dy
+            new_position_y = prev_position_y - step_size_y
 
         # Ensure the animal stays within the arena bounds
         new_position_x = max(0, min(arena_size, new_position_x))

@@ -1,15 +1,13 @@
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import matplotlib
-import numpy as np
-
-# matplotlib.use('macOSX')
 
 # %%
 
-# Setting up the arena and the time
+# Setting up the arena and the timeconda
 
-timestamps = 1000  # Number of timestamps for which the stimulus is run
+timestamps = 10000  # Number of timestamps for which the stimulus is run
 
 arena_size = 1  # Arena is a 1 x 1 unit square
 
@@ -30,7 +28,7 @@ threshold_up = 0.5  # Average up/down bias (y-axis)
 # %%
 
 # Simulate the animal movement
-for t in np.arange(timestamps):
+for t in np.arange(timestamps):  # going through every timestep using a for loop
 
     x_bias = np.random.uniform(0, 1)  # for every move the animal has a bias which decides animal goes to left or right
     y_bias = np.random.uniform(0, 1)  # for every move the animal has a bias which decides animal goes to up or down
@@ -38,21 +36,21 @@ for t in np.arange(timestamps):
     prev_position_x = animal_position_x[-1]  # storing old position in x-axis
     prev_position_y = animal_position_y[-1]  # storing old position in y-axis
 
-    dx = 0.05  # Speed of animal in x-axis
-    dy = 0.05  # Speed of animal in y-axis
+    step_size_x = 0.05  # Speed of animal in x-axis
+    step_size_y = 0.05  # Speed of animal in y-axis
 
-    # dx = np.random.normal(0.05, 0.01)
-    # dy = np.random.normal(0.05, 0.01)
+    # step_size_x = np.random.normal(0.05, 0.01)
+    # step_size_y = np.random.normal(0.05, 0.01)
 
     if x_bias > threshold_right:
-        new_position_x = prev_position_x + dx  # New position = Old position + step_right
+        new_position_x = prev_position_x + step_size_x  # New position = Old position + step_right
     else:
-        new_position_x = animal_position_x[-1] - dx  # New position = Old position + step_left
+        new_position_x = animal_position_x[-1] - step_size_x  # New position = Old position + step_left
 
     if y_bias > threshold_up:
-        new_position_y = animal_position_y[-1] + dy  # New position = Old position + step_up
+        new_position_y = animal_position_y[-1] + step_size_y  # New position = Old position + step_up
     else:
-        new_position_y = animal_position_y[-1] - dy  # New position = Old position + step
+        new_position_y = animal_position_y[-1] - step_size_y  # New position = Old position + step
 
     # Make sure the animal is within the arena
     new_position_x = max(0, min(arena_size, new_position_x))
