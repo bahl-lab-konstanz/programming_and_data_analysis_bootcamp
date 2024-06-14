@@ -192,7 +192,7 @@ def plot_histogram(df, column_name="x_position", axs=None):
 
     # check if we already have a target window for plotting, if not create one
     if axs is None:
-        fig, axs = plt.subplots((1, 1))
+        fig, axs = plt.subplots(1, 1)
 
     # plot
     axs.plot(bin_centers, hist_values)
@@ -236,7 +236,7 @@ df_all_fish = import_csv_from_dir(dir_path, show_info=True)
 
 
 # %% Show distribution for all fish together
-plot_histogram(df, column_name="x_position", axs=None)
+plot_histogram(df, column_name="x_position")
 
 
 # %% Show distribution for each fish
@@ -348,7 +348,7 @@ for fish_id in fish_id_list:
     n_recordings_dark = np.sum(hist_values[i_dark_array])
     x_range_dark = np.abs(-4.5 - dark_threshold)
 
-    i_undecided_array = np.argwhere(dark_threshold < bin_centers < light_threshold)
+    i_undecided_array = np.argwhere(np.logical_and(dark_threshold < bin_centers, bin_centers < light_threshold))
     n_recordings_undecided = np.sum(hist_values[i_undecided_array])
     x_range_undecided = np.abs(light_threshold - dark_threshold)
 
