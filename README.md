@@ -43,7 +43,7 @@ package installer for Python
 
 **2. Create new environment with all the needed dependencies and install python 3.12**
 
-```conda env create --file=<LOCAL_PATH_TO_PROJECT/env.yaml>```
+```conda env create --file=<LOCAL_PATH_TO_PROJECT/env_<YOUR_OS>.yaml>```
 
 press `y` and `Enter` if prompted
 
