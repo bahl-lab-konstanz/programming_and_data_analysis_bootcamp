@@ -2,6 +2,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
 
+matplotlib.use('macOSX')
 #%%
 def simulate_animal_movement(timestamps=1000, arena_size=1, start_x=0.5, start_y=0.5, threshold_right=0.5, threshold_up=0.5):
 
